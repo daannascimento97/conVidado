@@ -1,181 +1,102 @@
-# ConVidado
+# conVidado
 
-Banco de tempo para cuidado mutuo entre idosos. Projeto pronto para abrir no
-VS Code: backend em Node.js + Express, banco de dados PostgreSQL, e um
-frontend simples (HTML/CSS/JS puro, sem build).
+**Banco de tempo para pessoas 50+ em Sergipe.** Quem ajuda ganha horas; quem precisa usa essas horas. Cada 1 hora de ajuda dada vale 1 hora de ajuda recebida, sem dinheiro.
 
-## Estrutura de pastas
+Projeto do grupo **conVidado** para o **1º MVP Tópicos Integradores – Silver Economy** (Edital nº 02/2026), curso de Análise e Desenvolvimento de Sistemas da **UNINASSAU Aracaju**.
 
-```
-tempojunto/
-├── backend/              API em Node.js
-│   ├── src/
-│   │   ├── server.js     ponto de entrada
-│   │   ├── db.js         conexao com o PostgreSQL
-│   │   ├── seed.js       cria o primeiro administrador
-│   │   ├── routes/       rotas da API (auth, users, offers, transfers, admin)
-│   │   ├── middleware/   verificacao de login e de permissao de admin
-│   │   └── scripts/
-│   │       └── setup-db.js   cria as tabelas e categorias
-│   ├── package.json
-│   └── .env.example      modelo do arquivo de configuracao
-├── database/
-│   ├── schema.sql        estrutura das tabelas
-│   └── seed.sql          categorias padrao
-└── frontend/
-    ├── index.html        app principal (login, inicio, buscar, transferir, perfil)
-    ├── admin.html         painel de administracao
-    ├── css/style.css
-    └── js/ (app.js, admin.js)
-```
-
-O backend serve o frontend automaticamente, entao no final voce so precisa
-rodar um servidor (`npm start`) e abrir o navegador.
+🌐 **Landing page:** https://daannascimento97.github.io/conVidado/
 
 ---
 
-## Parte 1 - Instalar e configurar o PostgreSQL
+## Equipe
 
-Se voce nunca usou PostgreSQL, siga esta parte com calma. Voce so faz isso
-uma vez.
+| Nome | Papel |
+| --- | --- |
+| Daniel Nascimento Santos | Líder e Product Owner, back-end, front-end e IA |
+| Lucas Silva Santos | Desenvolvimento e revisão de código |
 
-### 1.1 Instalar o PostgreSQL
+## O problema
 
-**Windows**
-1. Baixe o instalador em https://www.postgresql.org/download/windows/
-2. Rode o instalador. Quando ele pedir uma senha para o usuario `postgres`,
-   escolha uma e anote em um lugar seguro - voce vai usar em alguns minutos.
-3. Deixe a porta padrao (5432).
-4. No fim da instalacao, o "Stack Builder" pode abrir - pode fechar, nao e
-   necessario para este projeto.
+Muitas pessoas 50+ têm habilidades para oferecer (costura, consertos, companhia, ensino) e também precisam de ajuda no dia a dia, mas não têm uma rede de apoio organizada. Pedir ajuda por aplicativo costuma ser difícil para quem tem pouca prática com o celular.
 
-**macOS**
-- Opcao mais simples: baixe o **Postgres.app** em https://postgresapp.com,
-  arraste para a pasta Aplicativos e abra. Ele ja sobe o banco rodando.
-- Ou, se usa Homebrew: `brew install postgresql@16` e depois
-  `brew services start postgresql@16`.
+## A solução
 
-**Linux (Ubuntu/Debian)**
-```
-sudo apt update
-sudo apt install postgresql postgresql-contrib
-sudo systemctl start postgresql
-```
+- **Carteira de horas:** cada troca registra 1 hora de crédito para quem ajudou e 1 hora de débito para quem recebeu.
+- **Pedido por voz:** a pessoa fala o que precisa, sem preencher formulários.
+- **IA de match:** um LLM organiza o pedido (categoria, urgência e duração) e sugere os 3 voluntários do bairro que mais combinam com ele.
+- **Segurança:** cadastro conferido pela moderação, aviso a um familiar antes de cada encontro e avaliação após cada troca.
 
-### 1.2 Criar o banco de dados e o usuario do app
+## Stack (item 7.2 do edital)
 
-Voce vai criar um usuario proprio para o ConVidado (em vez de usar o
-usuario `postgres` principal, o que e mais seguro).
+| Camada | Tecnologia |
+| --- | --- |
+| Front-end Web | React + Tailwind CSS |
+| Front-end Mobile | React Native |
+| Back-end | Java + Spring Boot + Hibernate (JPA), padrão MVC |
+| Banco de dados | PostgreSQL |
+| Inteligência Artificial | LLM (IA generativa) via API, chamada apenas pelo back-end |
 
-Abra o terminal do PostgreSQL (`psql`):
-
-- **Windows**: procure "SQL Shell (psql)" no menu iniciar e abra. Ele vai
-  perguntar servidor, banco, porta e usuario - pode apertar Enter em tudo
-  ate pedir a senha (a que voce criou na instalacao).
-- **macOS/Linux**: no terminal comum, digite `psql postgres` (no Linux pode
-  precisar de `sudo -u postgres psql`).
-
-Dentro do `psql`, cole estes comandos um de cada vez (troque `senha_forte`
-por uma senha sua):
-
-```sql
-CREATE USER convidado_user WITH PASSWORD 'senha_forte';
-CREATE DATABASE convidado OWNER convidado_user;
-GRANT ALL PRIVILEGES ON DATABASE convidado TO convidado_user;
-```
-
-Depois digite `\q` e Enter para sair do psql.
-
-O que voce acabou de fazer: criou um "cofre" vazio chamado `convidado` e
-uma chave (`convidado_user` + senha) que so abre esse cofre - o app nunca
-vai usar o usuario principal do banco.
-
-### 1.3 Guardar a conexao no arquivo .env
-
-Dentro da pasta `backend`, copie o arquivo de exemplo:
+## Arquitetura
 
 ```
-cp .env.example .env
+Web (React) ──┐
+              ├──> API REST (Spring Boot) ──> PostgreSQL
+Mobile (RN) ──┘          │
+                         └──> API do LLM
 ```
 
-(no Windows, pode copiar e renomear pelo Explorador de Arquivos mesmo)
+O back-end segue o padrão **MVC**, com os pacotes `model`, `repository`, `service`, `controller` e `dto`.
 
-Abra o `.env` no VS Code e ajuste a linha `DATABASE_URL` com o usuario e a
-senha que voce criou:
+**Entidades principais:** `Usuario`, `Habilidade`, `UsuarioHabilidade`, `Bairro`, `Pedido`, `Servico`, `TransacaoHora`, `Avaliacao`.
 
-```
-DATABASE_URL=postgresql://convidado_user:senha_forte@localhost:5432/convidado
-```
+**Endpoints da IA:**
+- `POST /api/pedidos/interpretar`: transforma o texto do pedido em um JSON organizado.
+- `GET /api/pedidos/{id}/sugestoes`: retorna os 3 voluntários sugeridos e o motivo de cada um.
 
-Tambem troque `JWT_SECRET` por qualquer frase longa e unica, e defina o
-email/senha do primeiro administrador em `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+## Roadmap
 
----
+| Release | Período | Entregas |
+| --- | --- | --- |
+| R1 – Base da troca | Outubro de 2026 | Cadastro, perfil com habilidades, carteira de horas, pedir e oferecer ajuda, IA para organizar o pedido, telas Web |
+| R2 – IA e acessibilidade | Até 18/11/2026 | Pedido por voz, IA de sugestão de voluntários, avaliação, aviso a familiar, painel admin, app Mobile |
+| R3 – Escala comunitária | 2027 | Grupos por bairro, relatórios para parceiros, lembretes por WhatsApp |
 
-## Parte 2 - Rodar o projeto
+## Como rodar (em construção)
 
-Com o PostgreSQL instalado e o `.env` preenchido:
+### Pré-requisitos
+- Java 17 ou superior
+- Maven
+- Node.js 18 ou superior (para o front-end React e React Native)
+- PostgreSQL 15 ou superior
 
-```
+### Back-end
+```bash
 cd backend
-npm install
-npm run db:setup
-npm run seed:admin
-npm start
+cp .env.example .env      # preencha a conexão do banco e a chave da API do LLM
+./mvnw spring-boot:run
 ```
 
-O que cada comando faz:
-- `npm install` - baixa as bibliotecas usadas pelo backend.
-- `npm run db:setup` - cria as tabelas dentro do banco `convidado` e
-  insere as categorias padrao (Transporte, Companhia, Tecnologia...).
-- `npm run seed:admin` - cria o primeiro usuario administrador, usando os
-  dados que voce colocou em `ADMIN_EMAIL` e `ADMIN_PASSWORD` no `.env`.
-  Pode rodar de novo a qualquer momento sem problema.
-- `npm start` - liga o servidor.
+### Front-end Web
+```bash
+cd web
+npm install
+npm run dev
+```
 
-Agora abra no navegador:
-- **App para os usuarios**: http://localhost:8888
-- **Painel de administracao**: http://localhost:8888/admin.html (entre com
-  o email e senha que voce definiu como administrador)
+> Senhas e chaves de API nunca vão para o repositório. Use sempre o arquivo `.env`, que já está no `.gitignore`.
 
----
+## Governança do código
 
-## Como incluir novos administradores
+- **Branches:** `main` (estável e protegida), `develop` (integração) e `feature/<issue>-<nome>` para cada tarefa.
+- **Commits:** padrão [Conventional Commits](https://www.conventionalcommits.org/pt-br/), em português. Exemplo: `feat: cria endpoint de pedidos`.
+- **Pull requests:** todo código entra por pull request, com revisão de outro integrante e testes automáticos (GitHub Actions).
+- **Dados:** coleta mínima e respeito à LGPD (Lei 13.709/2018). Dados enviados à IA são anonimizados.
 
-Ha dois jeitos:
+## Documentação do projeto
 
-1. **Pelo painel** (mais simples): entre em `/admin.html` com uma conta que
-   ja seja administradora, encontre a pessoa na tabela de usuarios e clique
-   em "Tornar admin".
-2. **Pelo terminal**: mude `ADMIN_EMAIL` no `.env` para o email da pessoa e
-   rode `npm run seed:admin` de novo - se o email ja existir, ele so marca
-   essa conta como administradora.
+- Lean Inception, Canvas do MVP, roadmap e Kanban: quadro do Miro do grupo.
+- Documento de governança e planejamento da funcionalidade de IA: entregues aos professores na Avaliação Inicial.
 
 ---
 
-## Principais rotas da API
-
-| Metodo | Rota                        | O que faz                                   |
-|--------|-----------------------------|----------------------------------------------|
-| POST   | /api/auth/register          | Cria uma conta                                |
-| POST   | /api/auth/login             | Entra e recebe o token de sessao              |
-| GET    | /api/users/me                | Dados do usuario logado                       |
-| GET    | /api/offers                  | Lista ofertas de ajuda (filtra por categoria) |
-| POST   | /api/offers                  | Publica uma nova oferta                       |
-| POST   | /api/transfers                | Transfere horas para outra pessoa             |
-| GET    | /api/transfers/extrato        | Historico de horas da pessoa logada           |
-| GET    | /api/admin/users              | (admin) Lista todos os usuarios               |
-| PATCH  | /api/admin/users/:id/role     | (admin) Promove ou remove administrador       |
-
----
-
-## Proximos passos sugeridos
-
-Este projeto e um alicerce funcional, nao uma versao pronta para producao.
-Antes de lancar para usuarios de verdade, vale:
-- Trocar o `JWT_SECRET` e as senhas do `.env` por valores fortes e unicos.
-- Colocar o site atras de HTTPS (por exemplo hospedando em um servico como
-  Render, Railway ou uma VPS com Nginx + Certbot).
-- Adicionar recuperacao de senha por email.
-- Pensar em um processo real de verificacao de identidade antes de liberar
-  o selo "verificado" (hoje qualquer administrador pode marcar manualmente).
+Projeto acadêmico – UNINASSAU Aracaju, 2026.
